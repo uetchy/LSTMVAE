@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#coding:utf-8
 import chainer.functions as F
 import numpy as np
 xp = np
@@ -254,10 +253,6 @@ def test(args,dataname,epoch):
     encdec.predict(args.batchsize,src_vocab,randFlag=False)
     return encdec
 
-if __name__=="__main__":
-    args = Args()
-    #train(args)
-    test(args ,"sent",32)
 
  
 
