@@ -7,10 +7,10 @@ class Args():
     def __init__(self,dataname,train=True):
         self.source ="./{}/prof16000fixed_longcut.txt".format(dataname)
         self.epoch = 40
-        self.n_vocab =  16640#16940
+        self.n_vocab = 16940#16640
         self.embed = 300
-        self.hidden= 600#300
-        self.n_latent = 1200#1200
+        self.hidden= 300#600
+        self.n_latent = 200#1200
         self.layer = 1
         self.batchsize=10
         self.sample_size = 10
@@ -40,14 +40,14 @@ def testSentAdd(args,encdec):
     
 
 def sampleTrain():
-    dataname= "sent"
+    dataname= "prof"
     args = Args(dataname,False)
     train(args,dataname)
 
 def sampleTest():
-    dataname= "sent"
+    dataname= "prof"
     args = Args(dataname,False)
-    for ei in [15,39]:
+    for ei in [29]:
         encdec = test(args,dataname,ei)
         testSentAdd(args,encdec)
 

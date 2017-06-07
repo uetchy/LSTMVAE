@@ -47,7 +47,7 @@ class Vocabulary:
 
   @staticmethod
   def load(filename):
-    with open(filename) as fp:
+    with codecs.open(filename,"r",encoding="utf-8") as fp:
       self = Vocabulary()
       self.__size = int(next(fp))
       self.__stoi = defaultdict(lambda: 0)

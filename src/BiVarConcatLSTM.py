@@ -68,7 +68,7 @@ class VaeLSTM(Chain):
         self.enc_b.reset_state()
         ys_f = self.enc_f(xs_f)
         ys_b = self.enc_b(xs_b)
-        
+
         mu_arr = [self.le2_mu(F.concat((hx_f,cx_f,hx_b,cx_b))) for hx_f,cx_f,hx_b,cx_b in zip(self.enc_f.hx,self.enc_f.cx,self.enc_b.hx,self.enc_b.cx)]
         var_arr= [self.le2_ln_var(F.concat((hx_f,cx_f,hx_b,cx_b))) for hx_f,cx_f,hx_b,cx_b in zip(self.enc_f.hx,self.enc_f.cx,self.enc_b.hx,self.enc_b.cx)]
         return mu_arr,var_arr
@@ -90,7 +90,7 @@ class VaeLSTM(Chain):
         t_pred = [t_e[1:]+[2] for t_e in t]
         t_pred = [xp.asarray(tp_e,dtype=xp.int32) for tp_e in t_pred]
         t = self.denoiseInput(t)
-        print("t:{}".format([self.vocab.itos(t_e) for t_e in t[0]]))        
+        print("t:{}".format([self.vocab.itos(t_e) for t_e in t[0]]))
         t_vec = self.makeEmbedBatch(t)
         for l in range(k):
             z = F.gaussian(mu, ln_var)
@@ -99,7 +99,7 @@ class VaeLSTM(Chain):
         C = 0.06 *(self.epoch_now-kl_zero_epoch)/self.epoch
         if self.epoch_now>kl_zero_epoch:loss += C * F.gaussian_kl_divergence(mu, ln_var) / self.batch_size
         return loss
-    
+
     def denoiseInput(self,t,noise_rate=0.3):###WordDropOut
         if noise_rate>0.0:
             for t_i,t_e in enumerate(t):
@@ -108,21 +108,20 @@ class VaeLSTM(Chain):
                 unk_ind_arr = ind_arr[:int(len(ind_arr)*noise_rate)]
                 for unk_ind in unk_ind_arr:t[t_i][unk_ind]=self.vocab.stoi("<unk>")
         return t
-        
+
     def decode(self,z,t_vec,t_pred):
         self.dec.hx = F.reshape(self.ld_h(z),(1,self.batch_size,2*self.out_size))#1,30,100
         self.dec.cx = F.reshape(self.ld_c(z),(1,self.batch_size,2*self.out_size))
 
         ys_d = self.dec(t_vec)
-        ys_w = [self.h2w(y) for y in ys_d]
-        loss = F.softmax_cross_entropy(ys_w[0],t_pred[0])#/len(t[0])
-
+        ys_w = self.h2w(F.concat(ys_d,axis=0))#170604
+        t_all =[]
+        for t_each in t_pred:t_all+=t_each.tolist()
+        t_all = xp.array(t_all,dtype=xp.int32)
+        loss = F.softmax_cross_entropy(ys_w,t_all)
         print("t:{}".format([self.vocab.itos(tp_e) for tp_e in t_pred[0].tolist()]))
-        print("y:{}\n".format([self.vocab.itos(vec.argmax()) for vec in np.array(ys_w[0].data.tolist())]))
-        for ti in range(1,len(t_pred)):
-            loss+=F.softmax_cross_entropy(ys_w[ti],t_pred[ti])
-        print("before_loss:{}".format(loss.data))
-        
+        print("y:{}\n".format([self.vocab.itos(int(ys_w.data[ri].argmax())) for ri in range(len(t_pred[0]))]))
+
         return loss
 
     def loadW(self,premodel_name):
@@ -137,10 +136,9 @@ class VaeLSTM(Chain):
         print("pre:{}".format(self.embed.W.data[0][:5]))
         self.embed.W = Variable(xp.array(transferWordVector(src_w2ind,src_ind2w,premodel_name),dtype=xp.float32))
         print("pos:{}".format(self.embed.W.data[0][:5]))
-        
+
 
     def predict(self,batch,vocab,z=None,randFlag=True):
-        print(xp)
         if z is None:
             z = Variable(xp.random.normal(0,1,(batch,self.n_latent)).astype(xp.float32))
         else:
@@ -178,7 +176,7 @@ class VaeLSTM(Chain):
         for ni,name in enumerate(tenti):
             name = [vocab.itos(nint) for nint in name.tolist()]
             if "</s>" in name:
-                print("name:{}".format(" ".join(name[:name.index("</s>")])))
+                print("Generated:{}".format(" ".join(name[:name.index("</s>")])))
 
 
 def train(args,dataname="sent",wordvec_model=""):
@@ -193,7 +191,7 @@ def train(args,dataname="sent",wordvec_model=""):
     encdec.setBatchSize(args.batchsize)
     encdec.setVocab(src_vocab)
     encdec.setMaxEpoch(args.epoch)
-    
+
     first_e = 0
     model_name=""
     for e in range(args.epoch):
@@ -201,10 +199,10 @@ def train(args,dataname="sent",wordvec_model=""):
         if os.path.exists(model_name_tmp):
             model_name = model_name_tmp
             encdec.setEpochNow(e+1)
-            
+
     if os.path.exists(model_name):
         serializers.load_npz(model_name,encdec)
-        print("loaded_{}".format(model_name))           
+        print("loaded_{}".format(model_name))
         first_e = encdec.epoch_now
     else:
         print("loadW2V")
@@ -212,9 +210,9 @@ def train(args,dataname="sent",wordvec_model=""):
             encdec.loadW()
         else:
             print("wordvec model doesnt exists.")
-      
-    if args.gpu>=0:encdec.to_gpu() 
-    
+
+    if args.gpu>=0:encdec.to_gpu()
+
     optimizer = optimizers.Adam()
     optimizer.setup(encdec)
     for e_i in range(first_e,args.epoch):
@@ -236,7 +234,7 @@ def train(args,dataname="sent",wordvec_model=""):
         print("e{}:loss_sum:{}".format(e_i,loss_sum))
         model_name_save = "./{}/model/biconcatlstm_vae_kl_{}_{}_l{}.npz".format(dataname,dataname,e_i,args.n_latent)
         serializers.save_npz(model_name_save, encdec)
-        
+
 def test(args,dataname,epoch):
     if args.gpu>=0:
         import cupy as cp
@@ -249,10 +247,9 @@ def test(args,dataname,epoch):
     else:encdec.to_cpu()
     src_vocab = Vocabulary.load('./{}/vocab_{}_l{}.bin'.format(dataname,dataname,args.n_latent))
     encdec.setVocab(src_vocab)
-    print("xp:{}".format(xp))
     encdec.predict(args.batchsize,src_vocab,randFlag=False)
     return encdec
 
 
- 
+
 
