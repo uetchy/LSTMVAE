@@ -3,6 +3,8 @@ sys.path.append("../")
 from BiVarConcatLSTM import train,test
 from AddVaeConcat import testAdd
 
+import argparse
+
 class Args():
     def __init__(self,dataname,train=True):
         self.source ="./{}/prof16000fixed_longcut.txt".format(dataname)
@@ -53,5 +55,13 @@ def sampleTest():
 
 
 if __name__=="__main__":
-    # sampleTrain()
-    sampleTest()
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument("--train",
+                        help="train mode",
+                        action="store_true")
+    args = parser.parse_args()
+
+    if args.train:
+        sampleTrain()
+    else:
+        sampleTest()
