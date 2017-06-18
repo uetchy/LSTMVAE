@@ -2,6 +2,10 @@
 LSTMVAE implemented with chainer.
 
 This code is for Python 3.
+needs some Library as follows.
+  chainer 2.0
+  cupy 1.0(if you use GPU)
+  numpy>=1.12
 
 Codes are based on
 [Generating sentences from continuous space.](https://arxiv.org/abs/1511.06349)
@@ -12,7 +16,7 @@ Models can be downloaded from
 ```
 . ./src/each_case/prof/model/download_model.sh
 ```
-If the file name is incorrect, please rename it to "biconcatlstm_vae_kl_prof_29_l200.npz".
+If the file name is incorrect, please rename it to "vae_biconcat_prof_29_l200.npz".
 
 Test can be executed by
 ```
