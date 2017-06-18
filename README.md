@@ -16,7 +16,7 @@ If the file name is incorrect, please rename it to "biconcatlstm_vae_kl_prof_29_
 
 Test can be executed by
 ```
-python ./src/each_case/sampleTrainTest.py
+python ./src/each_case/sampleVAEProf.py
 ```
 Hyperparameters are also set there.
 
@@ -26,6 +26,6 @@ Training data are in
 
 Training can be executed by
 ```
-python ./src/each_case/sampleTrainTest.py --train
+python ./src/each_case/sampleVAEProf.py --train
 ```
 Then, test can be executed as above. Hyperparameters are also set there.
