@@ -67,25 +67,24 @@ class CVAEHidden(VAECommon):
         for tt,cat in zip(tt_gen,cat_gen):
             yield (tt,cat)
 
-    def encode(self, xs, categ_vec_f_h, categ_vec_f_c, categ_vec_b_h, categ_vec_b_c):
-        self.enc_f.hx = categ_vec_f_h
-        self.enc_f.cx = categ_vec_f_c
-        self.enc_b.hx = categ_vec_b_h
-        self.enc_b.cx = categ_vec_b_c
+    # def encode(self, xs, categ_vec_f_h, categ_vec_f_c, categ_vec_b_h, categ_vec_b_c):
+    def encode(self, xs, cat):
+        self.enc_f.hx = self.categ_enc_f_h(xp.array(cat, dtype=xp.int32))
+        self.enc_f.cx = self.categ_enc_f_c(xp.array(cat, dtype=xp.int32))
+        self.enc_b.hx = self.categ_enc_b_h(xp.array(cat, dtype=xp.int32))
+        self.enc_b.cx = self.categ_enc_b_c(xp.array(cat, dtype=xp.int32))
         mu_arr,var_arr = super().encode(xs)
         return mu_arr, var_arr
 
     def __call__(self,tupl):
         xs = tupl[0];cat = tupl[1]
         print(self.categ_vocab.itos(cat[0][0]))
-        categ_vec_ef_h = self.categ_enc_f_h(xp.array(cat, dtype=xp.int32))
-        categ_vec_ef_c = self.categ_enc_f_c(xp.array(cat, dtype=xp.int32))
-        categ_vec_eb_h = self.categ_enc_b_h(xp.array(cat, dtype=xp.int32))
-        categ_vec_eb_c = self.categ_enc_b_c(xp.array(cat, dtype=xp.int32))
+        # mu_arr, var_arr = self.encode(xs, categ_vec_ef_h, categ_vec_ef_c, categ_vec_eb_h, categ_vec_eb_c)
+        mu_arr, var_arr = self.encode(xs, cat)
+
         categ_vec_dec_h = self.categ_dec_h(xp.array(cat, dtype=xp.int32))
         categ_vec_dec_c = self.categ_dec_c(xp.array(cat, dtype=xp.int32))
 
-        mu_arr, var_arr = self.encode(xs, categ_vec_ef_h, categ_vec_ef_c, categ_vec_eb_h, categ_vec_eb_c)
         t = [[1] + x for x in xs]  # 1は<s>を指す。decには<s>から入れる。</s>まで予測する。
         loss = None
         for mu, var in zip(mu_arr, var_arr):
@@ -132,5 +131,12 @@ class CVAEHidden(VAECommon):
         self.dec.cx = categ_vec_c + F.reshape(self.ld_c(z), (1, self.batch_size, 2 * self.out_size))
         super().predict(batch,randFlag)
 
-
+    def shiftStyle(self,sent_arr,enc_tag,dec_tag,randFlag=False):
+        xs = [[self.vocab.stoi(char) for char in word_arr.split(" ")] for word_arr in sent_arr]
+        mu_arr,var_arr = self.encode(xs,enc_tag)
+        categ_vec_h = F.reshape(self.categ_dec_h(xp.array([dec_tag for i in range(len(xs))], dtype=xp.int32)),(1, len(xs), 2 * self.out_size))
+        categ_vec_c = F.reshape(self.categ_dec_c(xp.array([dec_tag for i in range(len(xs))], dtype=xp.int32)),(1, len(xs), 2 * self.out_size))
+        self.dec.hx = categ_vec_h + F.reshape(self.ld_h(mu_arr[0]), (1, len(xs), 2 * self.out_size))  # 1,30,100
+        self.dec.cx = categ_vec_c + F.reshape(self.ld_c(mu_arr[0]), (1, len(xs), 2 * self.out_size))
+        super().predict(len(xs),randFlag)
 

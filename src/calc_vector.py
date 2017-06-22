@@ -21,7 +21,8 @@ def vectorize(args,encdec,sent_arr):
     var_arr = F.split_axis(var_arr, len(sent_arr), axis=0)
     # print("cossim:{}".format(cosSim(mu_arr[0].data[0],mu_arr[1].data[0])))
     return mu_arr,var_arr
-    
+
+
 def cosSim(v1,v2):
     v1 = np.array(v1.tolist()); v2 = np.array(v2.tolist());
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
