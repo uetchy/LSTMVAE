@@ -15,6 +15,7 @@ class Args():
         self.n_vocab =  15628#15593
         self.embed = 300
         self.categ_size=221#101
+        #points directory to transfer gensim w2v model
         self.premodel=""
 
         self.hidden= 300
