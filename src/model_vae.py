@@ -29,19 +29,9 @@ class VAE(VAECommon):
         )
 
     def setArgs(self,args):
-        self.n_vocab = args.n_vocab
-        self.n_embed = args.embed
-        self.n_layers = args.layer
-        self.n_latent = args.n_latent
-        self.out_size = args.hidden
-        self.sample_size= args.sample_size
-        self.kl_zero_epoch = args.kl_zero_epoch
-        self.drop_ratio = args.dropout
-
-        self.setBatchSize(args.batchsize)
-        self.setVocab(args)
-        self.setMaxEpoch(args.epoch)
-        self.setEpochNow(0)
+        if args.gpu>=0:
+            import cupy as xp
+        super().setArgs(args)
 
     def getBatchGen(self,args):
         tt_now_list = [[self.vocab.stoi(char) for char in char_arr] for char_arr in gens.word_list(args.source)]

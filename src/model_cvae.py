@@ -38,21 +38,11 @@ class CVAEHidden(VAECommon):
         )
 
     def setArgs(self,args):
-        self.n_vocab = args.n_vocab
         self.categ_size= args.categ_size
-        self.n_embed = args.embed
-        self.n_layers = args.layer
-        self.n_latent = args.n_latent
-        self.out_size = args.hidden
-        self.sample_size= args.sample_size
-        self.kl_zero_epoch = args.kl_zero_epoch
-        self.drop_ratio = args.dropout
-
-        self.setBatchSize(args.batchsize)
-        self.setVocab(args)
         self.setCateg(args)
-        self.setMaxEpoch(args.epoch)
-        self.setEpochNow(0)
+        if args.gpu>=0:
+            import cupy as xp
+        super().setArgs(args)
 
 
     def getBatchGen(self,args):
@@ -79,7 +69,6 @@ class CVAEHidden(VAECommon):
     def __call__(self,tupl):
         xs = tupl[0];cat = tupl[1]
         print(self.categ_vocab.itos(cat[0][0]))
-        # mu_arr, var_arr = self.encode(xs, categ_vec_ef_h, categ_vec_ef_c, categ_vec_eb_h, categ_vec_eb_c)
         mu_arr, var_arr = self.encode(xs, cat)
 
         categ_vec_dec_h = self.categ_dec_h(xp.array(cat, dtype=xp.int32))
