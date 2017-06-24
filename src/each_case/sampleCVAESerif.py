@@ -37,12 +37,11 @@ def sampleTrain():
 
 def sampleTestGen():
     args = Args(False)
-    categ_arr = [ri for ri in range(91,92)]
+    categ_arr = [16,24,25,30,31,37,40,43,46,53,55,57]
     for e_i in [28]:#[18,19,20]:
         model_name="./{}/model/cvaehidden_kl_{}_{}_l{}.npz".format(args.dataname,args.dataname,e_i,args.n_latent)
         encdec = CVAEHidden(args)
-        encdec = test(args,encdec,model_name,categ_arr[:1],predictFlag=True)
-
+        encdec = test(args,encdec,model_name,categ_arr,predictFlag=True)
 
 def sampleTestTransfer():
     args = Args(False)
@@ -51,7 +50,7 @@ def sampleTestTransfer():
     sent_arr_arr.append(["ハロ 〜 ォ 、 ミサト ! 元気 してた ?"])
     sent_arr_arr.append(["ギュネイ が 敵の 核ミサイル 群 を 阻止 してくれた 。 あれが 強化人間 の仕事 だ"])
     enc_dec_tupls = [("友利奈緒","イカ娘"),("アスカ","シンジ"),("シャア","クェス")]
-    for e_i in [28]:#[18,19,20]:
+    for e_i in [28]:
         model_name="./{}/model/cvaehidden_kl_{}_{}_l{}.npz".format(args.dataname,args.dataname,e_i,args.n_latent)
         encdec = CVAEHidden(args)
         encdec = test(args,encdec,model_name,categ_arr[:1],predictFlag=False)
@@ -71,4 +70,5 @@ if __name__=="__main__":
     if args.train:
         sampleTrain()
     else:
-        sampleTransfer()
+        sampleTestGen()
+        sampleTestTransfer()
