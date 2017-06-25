@@ -41,6 +41,7 @@ class CVAEHidden(VAECommon):
         self.categ_size= args.categ_size
         self.setCateg(args)
         if args.gpu>=0:
+            global xp
             import cupy as xp
         super().setArgs(args)
 

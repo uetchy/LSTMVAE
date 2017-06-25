@@ -30,6 +30,7 @@ class VAE(VAECommon):
 
     def setArgs(self,args):
         if args.gpu>=0:
+            global xp
             import cupy as xp
         super().setArgs(args)
 
