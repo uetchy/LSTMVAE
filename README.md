@@ -22,7 +22,9 @@ CVAE
 . ./src/each_case/serif/model/download_model.sh
 ```
 Test can be executed by
+
 VAE
+
 ```
 python ./src/each_case/sampleVAEProf.py
 ```
@@ -43,7 +45,9 @@ Dummy data are in
 ./src/each_case/serif/all_chara_dummy.txt
 
 Training can be executed by
+
 VAE
+
 ```
 python ./src/each_case/sampleVAEProf.py --train
 ```
@@ -54,7 +58,9 @@ python ./src/each_case/sampleCVAESerif.py --train
 Hyperparameters are also set there.
 
 Then, test can be executed as follows. 
+
 VAE
+
 ```
 python ./src/each_case/sampleVAEProf.py
 ```
