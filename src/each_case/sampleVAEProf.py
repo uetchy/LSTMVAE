@@ -46,8 +46,8 @@ def testSentAdd(args,encdec):
 def sampleTrain():
     args = Args(True)
     model_name_base="./{}/model/vae_biconcat_kl_{}_{}_l{}.npz"
-    encdec = VAE(args,model_name_base)
-    train(args,encdec)
+    encdec = VAE(args)
+    train(args,encdec, model_name_base)
 
 def sampleTest():
     args = Args(False)
