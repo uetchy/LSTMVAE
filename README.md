@@ -13,7 +13,9 @@ written by Samuel R. Bowman in 2015.
 
 ## Pre-trained Model
 Models can be downloaded from
+
 VAE
+
 ```
 . ./src/each_case/prof/model/download_model.sh
 ```
