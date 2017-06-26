@@ -23,7 +23,7 @@ CVAE
 ```
 . ./src/each_case/serif/model/download_model.sh
 ```
-Test can be executed by
+Test can be executed from 
 
 VAE
 
@@ -44,9 +44,12 @@ As to VAE, training data are in
 As to CVAE, training data cannnot be uploaded due to the authority problems.
 Dummy data are in 
 ./src/each_case/serif/all_serif16000_fixed_dummy.txt
+
+and 
+
 ./src/each_case/serif/all_chara_dummy.txt
 
-Training can be executed by
+Training can be executed from
 
 VAE
 
