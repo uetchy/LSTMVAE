@@ -11,7 +11,7 @@ import util.generators as gens
 from util.NNCommon import transferWordVector,predictRandom
 
 class VAECommon(Chain):
-    # args.n_vocab,args.layer,args.embed,args.hidden,args.n_latent
+
     def __init__(self,**args):
         super(VAECommon, self).__init__(**args)
 
@@ -146,9 +146,7 @@ class VAECommon(Chain):
                 t = [predictRandom(F.softmax(y_each)) for y_each in ys_w]
             else:
                 t = [y_each.data[-1].argmax(0) for y_each in ys_w]
-            name_arr = [self.vocab.itos(t_each) for t_each in t]
             name_arr_arr.append(t)
-            # print("t:{}".format(name_arr))
             t = [self.embed(xp.array([t_each], dtype=xp.int32)) for t_each in t]
             count_len += 1
         tenti = xp.array(name_arr_arr).T
@@ -235,7 +233,6 @@ class LSTM(L.NStepLSTM):
             self.cx = Variable(
                     xp.zeros((self.n_layers, batch, self.state_size), dtype=xs[0].dtype))
 
-        # hy, cy, ys = super(LSTM, self).__call__(self.hx, self.cx, xs, train)
         hy, cy, ys = super(LSTM, self).__call__(self.hx, self.cx, xs)
         self.hx, self.cx = hy, cy
         return ys

@@ -1,7 +1,7 @@
 from chainer import cuda
 from chainer import link
 import numpy as np
-# from gensim.models import word2vec
+from gensim.models import word2vec
 
 def copy_model(src, dst):
     assert isinstance(src, link.Chain)

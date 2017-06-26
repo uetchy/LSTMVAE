@@ -12,7 +12,6 @@ from model_common import VAECommon,LSTM
 from calc_vector import cosSim
 
 class CVAEHidden(VAECommon):
-    # args.n_vocab,args.layer,args.embed,args.hidden,args.n_latent
     def __init__(self,args):
         self.setArgs(args)
         super(CVAEHidden, self).__init__(
@@ -58,7 +57,6 @@ class CVAEHidden(VAECommon):
         for tt,cat in zip(tt_gen,cat_gen):
             yield (tt,cat)
 
-    # def encode(self, xs, categ_vec_f_h, categ_vec_f_c, categ_vec_b_h, categ_vec_b_c):
     def encode(self, xs, cat):
         self.enc_f.hx = self.categ_enc_f_h(xp.array(cat, dtype=xp.int32))
         self.enc_f.cx = self.categ_enc_f_c(xp.array(cat, dtype=xp.int32))

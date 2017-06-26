@@ -12,14 +12,14 @@ class Args():
         self.category="./{}/all_chara.txt".format(dataname)
 
         self.epoch = 30
-        self.n_vocab =  15628#15593
+        self.n_vocab =  15628
         self.embed = 300
-        self.categ_size=221#101
+        self.categ_size=221
         #points directory to transfer gensim w2v model
         self.premodel=""
 
         self.hidden= 300
-        self.n_latent = 600#1200
+        self.n_latent = 600
         self.layer = 1
         self.batchsize=60
         self.sample_size = 10
@@ -39,7 +39,7 @@ def sampleTrain():
 def sampleTestGen():
     args = Args(False)
     categ_arr = [16,24,25,30,31,37,40,43,46,53,55,57]
-    for e_i in [28]:#[18,19,20]:
+    for e_i in [28]:
         model_name="./{}/model/cvaehidden_kl_{}_{}_l{}.npz".format(args.dataname,args.dataname,e_i,args.n_latent)
         encdec = CVAEHidden(args)
         encdec = test(args,encdec,model_name,categ_arr,predictFlag=True)
