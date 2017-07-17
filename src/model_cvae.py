@@ -82,9 +82,8 @@ class CVAEHidden(VAECommon):
                 loss += self.calcLoss(t, categ_vec_dec_h, categ_vec_dec_c, mu, var)
         return loss
 
-    def calcLoss(self, t, categ_vec_h, categ_vec_c, mu, ln_var):
+    def calcLoss(self, t, categ_vec_h, categ_vec_c, mu, ln_var,wei_arr=None):
         k = self.sample_size;
-        kl_zero_epoch = self.kl_zero_epoch
         loss = None
         t_pred = [t_e[1:] + [2] for t_e in t]
         t_pred = [xp.asarray(tp_e, dtype=xp.int32) for tp_e in t_pred]
@@ -94,20 +93,25 @@ class CVAEHidden(VAECommon):
         for l in range(k):
             z = F.gaussian(mu, ln_var)
             if loss is None:
-                loss = self.decode(z, categ_vec_h, categ_vec_c, t_vec, t_pred) / (k * self.batch_size)
+                loss = self.decode(z, categ_vec_h, categ_vec_c, t_vec, t_pred,wei_arr) / (k * self.batch_size)
             elif loss is not None:
-                loss += self.decode(z, categ_vec_h, categ_vec_c, t_vec, t_pred) / (k * self.batch_size)
-        C = 0.005 * (self.epoch_now - kl_zero_epoch) / self.epoch  # 0.02
-        if self.epoch_now > kl_zero_epoch: loss += C * F.gaussian_kl_divergence(mu, ln_var) / self.batch_size
+                loss += self.decode(z, categ_vec_h, categ_vec_c, t_vec, t_pred,wei_arr) / (k * self.batch_size)
+        C = 0.005 * (self.epoch_now - self.kl_zero_epoch) / self.epoch  # 0.02
+        if self.epoch_now > self.kl_zero_epoch: loss+= C * F.gaussian_kl_divergence(mu, ln_var) / self.batch_size
         return loss
 
-    def decode(self, z, categ_vec_h, categ_vec_c, t_vec, t_pred):
+    def calcKLLoss(self,mu,ln_var):
+        C = 0.005 * (self.epoch_now - self.kl_zero_epoch) / self.epoch  # 0.02
+        if self.epoch_now > self.kl_zero_epoch: loss = C * F.gaussian_kl_divergence(mu, ln_var) / self.batch_size
+        return loss
+
+    def decode(self, z, categ_vec_h, categ_vec_c, t_vec, t_pred,wei_arr=None):
         categ_vec_h = F.reshape(categ_vec_h, (1, self.batch_size, 2 * self.out_size))
         categ_vec_c = F.reshape(categ_vec_c, (1, self.batch_size, 2 * self.out_size))
 
         self.dec.hx = categ_vec_h + F.reshape(self.ld_h(z), (1, self.batch_size, 2 * self.out_size))  # 1,30,100
         self.dec.cx = categ_vec_c + F.reshape(self.ld_c(z), (1, self.batch_size, 2 * self.out_size))
-        loss = super().decode(t_vec,t_pred)
+        loss = super().decode(t_vec,t_pred,wei_arr)
         return loss
 
     def predict(self, batch, tag=1, randFlag=True, z=None):

@@ -37,7 +37,7 @@ class CVAESemiSup(CVAEHidden):
         return loss
 
 
-    def calcLoss(self,xs,cat):
+    def calcLoss(self,xs,cat,wei_arr=None):
         t = [[1] + x for x in xs]  # 1は<s>を指す。decには<s>から入れる。</s>まで予測する。
         mu_arr, var_arr = self.encode(xs, cat)
 
@@ -46,9 +46,9 @@ class CVAESemiSup(CVAEHidden):
         loss = None
         for mu, var in zip(mu_arr, var_arr):
             if loss is None:
-                loss = super().calcLoss(t, categ_vec_dec_h, categ_vec_dec_c, mu, var)
+                loss = super().calcLoss(t, categ_vec_dec_h, categ_vec_dec_c, mu, var,wei_arr)
             else:
-                loss += super().calcLoss(t, categ_vec_dec_h, categ_vec_dec_c, mu, var)
+                loss += super().calcLoss(t, categ_vec_dec_h, categ_vec_dec_c, mu, var,wei_arr)
         return loss
 
 
@@ -56,7 +56,11 @@ class CVAESemiSup(CVAEHidden):
         def calcEntropy(p):
             # p = F.softmax(self.xp.array(p,dtype=self.float32))
             log_p = F.log(p)
-            entropy = F.matmul(p,log_p,transb=True)
+            # entropy = F.matmul(p,log_p,transb=True)
+            entropy = F.sum(p*log_p,axis=1)
+            print("entropy:{}".format(entropy.data))
+            entropy = F.sum(entropy,axis=0)/entropy.data.shape[0]
+            print("entropy:{}".format(entropy.data))
             return entropy
 
         no_categ2 = [self.categ_vocab.stoi("<unk>")]*len(xs_unlabel)
@@ -66,20 +70,23 @@ class CVAESemiSup(CVAEHidden):
         y_prob = F.softmax(self.x2y(h_concat))
         #H(y|x)
         loss=calcEntropy(y_prob)
+        print("loss_shape:{}".format(loss.data.shape))
         # #q(y|x)*L(x,y)
         print("yprob:{}".format(y_prob.data.shape))
-        y_prob_spl = F.split_axis(y_prob,y_prob.data.shape[0],axis=0)
+        y_prob_spl = F.split_axis(y_prob,y_prob.data.shape[1],axis=1)
         print("yprob_spl:{}".format(y_prob_spl[0].data.shape))
 
         for ci in range(self.categ_size):
             cat_unlabel = [ci]*len(xs_unlabel)
-            loss_Lxy = self.calcLoss(xs_unlabel,cat_unlabel)
+            loss_Lxy = self.calcLoss(xs_unlabel,cat_unlabel,wei_arr=y_prob_spl[ci])
             print("loss_Lxy:{}".format(loss_Lxy.data))#data.shape))
-            y_prob_ci = F.transpose(F.concat([y_prob_spl[ci] for ri in range(2*self.out_size)],axis=0))
-            loss+=y_prob_ci*loss_Lxy
-
-
+            # y_prob_ci = F.transpose(F.concat([y_prob_spl[ci] for ri in range(2*self.out_size)],axis=0))
+            # loss+=y_prob_ci*loss_Lxy
+            # print(y_prob_spl[ci].data.shape)
+            # loss+=y_prob_spl[ci]*loss_Lxy
+            loss+=loss_Lxy
         return loss
+
 
     def calcLabelLoss(self,xs_label,cat_label):
         print(self.categ_vocab.itos(cat_label[0][0]))
@@ -127,8 +134,30 @@ if __name__=="__main__":
 
     def fortestSup(r_len):
         return fortest(r_len)
-        # for ri in fortest(r_len):
-        #     yield ri
 
-    for rj in fortestSup(4):
-        print("rj:{}".format(rj))
+    def cross_entropy(t,p,weight_arr,weigh_flag=True):
+        b = np.zeros(p.shape,dtype=np.float32)
+        b[np.arange(p.shape[0]), t] = 1
+        soft_arr = F.softmax(p)
+        log_arr = -F.log(soft_arr)
+        xent = b*log_arr
+        xent = F.max(xent,axis=1)/p.shape[0]
+        print("xent:{}".format(xent.data))
+        if not weigh_flag:
+            return F.sum(xent)
+        wxent= F.matmul(weight_arr,xent,transa=True)
+        print("wxent:{}".format(wxent.data))
+        return wxent
+
+    import numpy as np
+    arr_ = np.array([[2,3,4,5,56],[2,3,4,5,56],[2,3,4,5,56]],dtype=np.float32)
+    t = np.array([1,2,4],dtype=np.int32)
+    loss = F.softmax_cross_entropy(arr_,t)
+    print(loss.data)
+    wei_arr = np.array([1,2,0],dtype=np.float32)
+    ent = cross_entropy(t,arr_,wei_arr,False)
+    xent = cross_entropy(t,arr_,wei_arr,True)
+
+
+
+

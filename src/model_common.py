@@ -9,6 +9,7 @@ import numpy as xp
 from util.vocabulary import Vocabulary
 import util.generators as gens
 from util.NNCommon import transferWordVector,predictRandom
+from calc_vector import weighted_cross_entropy
 
 class VAECommon(Chain):
 
@@ -74,7 +75,8 @@ class VAECommon(Chain):
             [[set_cat.add(word) for word in word_arr] for word_arr in gens.word_list(args.category)]
             n_categ = len(set_cat) + 3
             print("n_categ:{}".format(n_categ))
-            categ_vocab = Vocabulary.new(gens.word_list(args.category), n_categ)
+            # categ_vocab = Vocabulary.new(gens.word_list(args.category), n_categ)
+            categ_vocab = Vocabulary.new(gens.word_list(args.category), args.categ_size)
             categ_vocab.save(categ_name)
         self.categ_vocab = categ_vocab
         return categ_vocab
@@ -105,6 +107,7 @@ class VAECommon(Chain):
 
     def loadModel(self,model_name_base,args):
         first_e = 0
+        model_name = ""
         for e in range(args.epoch):
             model_name_tmp = model_name_base.format(args.dataname, args.dataname, e,args.n_latent)
             if os.path.exists(model_name_tmp):
@@ -172,16 +175,28 @@ class VAECommon(Chain):
                    zip(self.enc_f.hx, self.enc_f.cx, self.enc_b.hx, self.enc_b.cx)]
         return mu_arr,var_arr
 
-    def decode(self,t_vec,t_pred):
+    def decode(self,t_vec,t_pred,wei_arr=None):
         ys_d = self.dec(t_vec)
         ys_w = self.h2w(F.concat(ys_d, axis=0))
         t_all = []
         for t_each in t_pred: t_all += t_each.tolist()
         t_all = xp.array(t_all, dtype=xp.int32)
-        loss = F.softmax_cross_entropy(ys_w, t_all)  # /len(t_all)
-        print("t:{}".format([self.vocab.itos(tp_e) for tp_e in t_pred[0].tolist()]))
-        print("y:{}\n".format([self.vocab.itos(int(ys_w.data[ri].argmax())) for ri in range(len(t_pred[0]))]))
+        if wei_arr is None:
+            loss = F.softmax_cross_entropy(ys_w, t_all)  # /len(t_all)
+        else:
+            sec_arr = np.array([ys_d_e.data.shape[0] for ys_d_e in ys_d[:-1]])
+            sec_arr = np.cumsum(sec_arr)
+            loss = weighted_cross_entropy(ys_w,t_all,wei_arr,sec_arr)
+        # print("t:{}".format([self.vocab.itos(tp_e) for tp_e in t_pred[0].tolist()]))
+        # print("y:{}\n".format([self.vocab.itos(int(ys_w.data[ri].argmax())) for ri in range(len(t_pred[0]))]))
         return loss
+
+    def lossClassifier(self,lossFun="softmaxcrossentropy",*args):
+        if lossFun=="softmaxcrossentropy":
+            F.softmax_cross_entropy()
+
+
+
 
 class LSTM(L.NStepLSTM):
 
