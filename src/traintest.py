@@ -20,9 +20,9 @@ def train(args,encdec,model_name_base = "./{}/model/cvaehidden_kl_{}_{}_l{}.npz"
         for tupl in encdec.getBatchGen(args):
             loss = encdec(tupl)
             loss_sum += loss.data
+
+            encdec.cleargrads()
             loss.backward()
-            optimizer.target.cleargrads()
-            loss.unchain_backward()
             optimizer.update()
         print("epoch{}:loss_sum:{}".format(e_i, loss_sum))
         model_name = model_name_base.format(args.dataname, args.dataname, e_i, args.n_latent)
