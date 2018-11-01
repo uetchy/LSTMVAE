@@ -32,8 +32,10 @@ class Args():
         self.gradclip = 5
 
 def sampleTrain():
-    args = Args(False)
-    train(args)
+    args = Args(True)
+    model_name_base="./{}/model/cvaehidden_kl_{}_{}_l{}.npz"
+    encdec = CVAEHidden(args)
+    train(args,encdec, model_name_base)
 
 
 def sampleTestGen():
