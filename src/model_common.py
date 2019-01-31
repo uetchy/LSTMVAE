@@ -1,31 +1,32 @@
-from chainer import Chain,Variable
+from chainer import Chain, Variable
 import chainer.links as L
 import chainer.functions as F
-from chainer import serializers,optimizers
-import os,random
+from chainer import serializers, optimizers
+import os, random
 import numpy as np
 import numpy as xp
 #xp 問題をどうするか。
 from util.vocabulary import Vocabulary
 import util.generators as gens
-from util.NNCommon import transferWordVector,predictRandom
+from util.NNCommon import transferWordVector, predictRandom
 from calc_vector import weighted_cross_entropy
+
 
 class VAECommon(Chain):
 
-    def __init__(self,**args):
+    def __init__(self, **args):
         super(VAECommon, self).__init__(**args)
 
-    def setArgs(self,args):
+    def setArgs(self, args):
         self.n_vocab = args.n_vocab
         self.n_embed = args.embed
         self.n_layers = args.layer
         self.n_latent = args.n_latent
         self.out_size = args.hidden
-        self.sample_size= args.sample_size
+        self.sample_size = args.sample_size
         self.kl_zero_epoch = args.kl_zero_epoch
         self.drop_ratio = args.dropout
-        if args.gpu>=0:
+        if args.gpu >= 0:
             import cupy as xp
 
         self.setBatchSize(args.batchsize)
@@ -48,7 +49,8 @@ class VAECommon(Chain):
                 ind_arr = [t_i for t_i in range(1, min(len(t_e), 12))]
                 random.shuffle(ind_arr)
                 unk_ind_arr = ind_arr[:int(len(ind_arr) * noise_rate)]
-                for unk_ind in unk_ind_arr: t[t_i][unk_ind] = self.vocab.stoi("<unk>")
+                for unk_ind in unk_ind_arr:
+                    t[t_i][unk_ind] = self.vocab.stoi("<unk>")
         return t
 
     def setVocab(self, args):
@@ -57,11 +59,14 @@ class VAECommon(Chain):
             src_vocab = Vocabulary.load(vocab_name)
         else:
             set_vocab = set()
-            [[set_vocab.add(word) for word in word_arr] for word_arr in gens.word_list(args.source)]
+            [[set_vocab.add(word)
+              for word in word_arr]
+             for word_arr in gens.word_list(args.source)]
             n_vocab = len(set_vocab) + 3
             print("n_vocab:{}".format(n_vocab))
             print("arg_vocab:{}".format(args.n_vocab))
-            src_vocab = Vocabulary.new(gens.word_list(args.source), args.n_vocab)
+            src_vocab = Vocabulary.new(
+                gens.word_list(args.source), args.n_vocab)
             src_vocab.save(vocab_name)
         self.vocab = src_vocab
         return src_vocab
@@ -72,11 +77,14 @@ class VAECommon(Chain):
             categ_vocab = Vocabulary.load(categ_name)
         else:
             set_cat = set()
-            [[set_cat.add(word) for word in word_arr] for word_arr in gens.word_list(args.category)]
+            [[set_cat.add(word)
+              for word in word_arr]
+             for word_arr in gens.word_list(args.category)]
             n_categ = len(set_cat) + 3
             print("n_categ:{}".format(n_categ))
             # categ_vocab = Vocabulary.new(gens.word_list(args.category), n_categ)
-            categ_vocab = Vocabulary.new(gens.word_list(args.category), args.categ_size)
+            categ_vocab = Vocabulary.new(
+                gens.word_list(args.category), args.categ_size)
             categ_vocab.save(categ_name)
         self.categ_vocab = categ_vocab
         return categ_vocab
@@ -91,7 +99,10 @@ class VAECommon(Chain):
             src_ind2w[vi] = src_vocab.itos(vi)
             src_w2ind[src_ind2w[vi]] = vi
         print("pre:{}".format(self.embed.W.data[0][:5]))
-        self.embed.W = Variable(xp.array(transferWordVector(src_w2ind, src_ind2w, premodel_name), dtype=xp.float32))
+        self.embed.W = Variable(
+            xp.array(
+                transferWordVector(src_w2ind, src_ind2w, premodel_name),
+                dtype=xp.float32))
         print("pos:{}".format(self.embed.W.data[0][:5]))
 
     def makeEmbedBatch(self, xs, reverse=False):
@@ -105,11 +116,12 @@ class VAECommon(Chain):
         xs = F.split_axis(self.embed(F.concat(xs, axis=0)), sections, axis=0)
         return xs
 
-    def loadModel(self,model_name_base,args):
+    def loadModel(self, model_name_base, args):
         first_e = 0
         model_name = ""
         for e in range(args.epoch):
-            model_name_tmp = model_name_base.format(args.dataname, args.dataname, e,args.n_latent)
+            model_name_tmp = model_name_base.format(
+                args.dataname, args.dataname, e, args.n_latent)
             if os.path.exists(model_name_tmp):
                 model_name = model_name_tmp
                 self.setEpochNow(e + 1)
@@ -128,7 +140,7 @@ class VAECommon(Chain):
                 print("wordvec model doesnt exists.")
         return first_e
 
-    def predict(self,batch,randFlag):
+    def predict(self, batch, randFlag):
         t = [[bi] for bi in [1] * batch]
         t = self.makeEmbedBatch(t)
 
@@ -158,7 +170,7 @@ class VAECommon(Chain):
             if "</s>" in name:
                 print("     Gen:{}".format("".join(name[:name.index("</s>")])))
 
-    def encode(self,xs):
+    def encode(self, xs):
         xs = [x + [2] for x in xs]  # 1は<s>を指す。decには<s>から入れる。
         xs_f = self.makeEmbedBatch(xs)
         xs_b = self.makeEmbedBatch(xs, True)
@@ -169,38 +181,43 @@ class VAECommon(Chain):
         ys_b = self.enc_b(xs_b)
 
         # VAE
-        mu_arr = [self.le2_mu(F.concat((hx_f, cx_f, hx_b, cx_b))) for hx_f, cx_f, hx_b, cx_b in
-                  zip(self.enc_f.hx, self.enc_f.cx, self.enc_b.hx, self.enc_b.cx)]
-        var_arr = [self.le2_ln_var(F.concat((hx_f, cx_f, hx_b, cx_b))) for hx_f, cx_f, hx_b, cx_b in
-                   zip(self.enc_f.hx, self.enc_f.cx, self.enc_b.hx, self.enc_b.cx)]
-        return mu_arr,var_arr
+        mu_arr = [
+            self.le2_mu(F.concat(
+                (hx_f, cx_f, hx_b, cx_b))) for hx_f, cx_f, hx_b, cx_b in zip(
+                    self.enc_f.hx, self.enc_f.cx, self.enc_b.hx, self.enc_b.cx)
+        ]
+        var_arr = [
+            self.le2_ln_var(F.concat(
+                (hx_f, cx_f, hx_b, cx_b))) for hx_f, cx_f, hx_b, cx_b in zip(
+                    self.enc_f.hx, self.enc_f.cx, self.enc_b.hx, self.enc_b.cx)
+        ]
+        return mu_arr, var_arr
 
-    def decode(self,t_vec,t_pred,wei_arr=None):
+    def decode(self, t_vec, t_pred, wei_arr=None):
         ys_d = self.dec(t_vec)
         ys_w = self.h2w(F.concat(ys_d, axis=0))
         t_all = []
-        for t_each in t_pred: t_all += t_each.tolist()
+        for t_each in t_pred:
+            t_all += t_each.tolist()
         t_all = xp.array(t_all, dtype=xp.int32)
         if wei_arr is None:
             loss = F.softmax_cross_entropy(ys_w, t_all)  # /len(t_all)
         else:
             sec_arr = np.array([ys_d_e.data.shape[0] for ys_d_e in ys_d[:-1]])
             sec_arr = np.cumsum(sec_arr)
-            loss = weighted_cross_entropy(ys_w,t_all,wei_arr,sec_arr)
+            loss = weighted_cross_entropy(ys_w, t_all, wei_arr, sec_arr)
         # print("t:{}".format([self.vocab.itos(tp_e) for tp_e in t_pred[0].tolist()]))
         # print("y:{}\n".format([self.vocab.itos(int(ys_w.data[ri].argmax())) for ri in range(len(t_pred[0]))]))
         return loss
 
-    def lossClassifier(self,lossFun="softmaxcrossentropy",*args):
-        if lossFun=="softmaxcrossentropy":
+    def lossClassifier(self, lossFun="softmaxcrossentropy", *args):
+        if lossFun == "softmaxcrossentropy":
             F.softmax_cross_entropy()
-
-
 
 
 class LSTM(L.NStepLSTM):
 
-    def __init__(self,n_layer, in_size, out_size, dropout=0.5):
+    def __init__(self, n_layer, in_size, out_size, dropout=0.5):
         n_layers = 1
         super(LSTM, self).__init__(n_layers, in_size, out_size, dropout)
         self.state_size = out_size
@@ -242,15 +259,14 @@ class LSTM(L.NStepLSTM):
         if self.hx is None:
             xp = self.xp
             self.hx = Variable(
-                    xp.zeros((self.n_layers, batch, self.state_size), dtype=xs[0].dtype))
+                xp.zeros((self.n_layers, batch, self.state_size),
+                         dtype=xs[0].dtype))
         if self.cx is None:
             xp = self.xp
             self.cx = Variable(
-                    xp.zeros((self.n_layers, batch, self.state_size), dtype=xs[0].dtype))
+                xp.zeros((self.n_layers, batch, self.state_size),
+                         dtype=xs[0].dtype))
 
         hy, cy, ys = super(LSTM, self).__call__(self.hx, self.cx, xs)
         self.hx, self.cx = hy, cy
         return ys
-
-
-

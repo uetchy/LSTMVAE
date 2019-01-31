@@ -1,6 +1,7 @@
 import random
 import codecs
 
+
 def batch(generator, batch_size):
     batch = []
     is_tuple = False
@@ -13,6 +14,7 @@ def batch(generator, batch_size):
     if batch:
         yield tuple(list(x) for x in zip(*batch)) if is_tuple else batch
 
+
 def sorted_parallel(generator1, generator2, pooling, order=1):
     gen1 = batch(generator1, pooling)
     gen2 = batch(generator2, pooling)
@@ -21,13 +23,15 @@ def sorted_parallel(generator1, generator2, pooling, order=1):
         for x in sorted(zip(batch1, batch2), key=lambda x: len(x[order])):
             yield x
 
+
 def word_list(filename):
-    with codecs.open(filename,"r",encoding="utf-8") as fp:
+    with codecs.open(filename, "r", encoding="utf-8") as fp:
         for l in fp:
             yield l.split()
 
+
 def word_list_rand(filename):
-    with codecs.open(filename,"r",encoding="utf-8") as fp:
+    with codecs.open(filename, "r", encoding="utf-8") as fp:
         line_arr = [l.split() for l in fp]
         random.shuffle(line_arr)
         for line in line_arr:
@@ -36,19 +40,20 @@ def word_list_rand(filename):
 
 def chara_list_rand(filename):
     with open(filename) as fp:
-        line_arr = [l.replace("\n","") for l in fp]
+        line_arr = [l.replace("\n", "") for l in fp]
         random.shuffle(line_arr)
         for l in line_arr:
             yield list(l)
 
+
 def chara_list(filename):
-    with codecs.open(filename,"r",encoding="utf-8") as fp:
+    with codecs.open(filename, "r", encoding="utf-8") as fp:
         for l in fp:
-            l = l.replace("\n","")
+            l = l.replace("\n", "")
             yield list(l)
 
+
 def letter_list(filename):
-    with codecs.open(filename,"r",encoding="utf-8") as fp:
+    with codecs.open(filename, "r", encoding="utf-8") as fp:
         for l in fp:
             yield list(''.join(l.split()))
-
